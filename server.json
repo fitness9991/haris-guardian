@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.fitness9991/haris-guardian",
+  "title": "Haris Guardian - Solana Token Risk Check",
+  "description": "Read-only Solana SPL/Token-2022 rug-risk check: 0-100 score (higher=riskier) with reasons.",
+  "websiteUrl": "https://harisguardian.netlify.app",
+  "version": "1.0.1",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://haris-api.vercel.app/mcp"
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/fitness9991/haris-guardian",
+    "source": "github"
+  }
+}
