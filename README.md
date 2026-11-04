@@ -119,6 +119,7 @@ MCP client config:
 ```json
 { "mcpServers": { "haris-guardian": { "type": "http", "url": "https://haris-api.vercel.app/mcp" } } }
 ```
+Cline: use `"type": "streamableHttp"` (see [llms-install.md](llms-install.md)).
 
 LLM-friendly summary: https://haris-api.vercel.app/llms.txt
 

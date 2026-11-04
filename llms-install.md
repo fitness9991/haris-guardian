@@ -15,7 +15,7 @@ Add this to the MCP settings file:
 }
 ```
 
-(Some clients use `"type": "http"` instead of `"streamableHttp"`.)
+In Cline the `type` must be `"streamableHttp"` (camelCase). If it is omitted Cline falls back to legacy SSE and the connection fails. Other clients such as VS Code and Claude Code use `"type": "http"`.
 
 Tools:
 - `check_solana_token` `{ "mint": "<base58 mint>" }`: 0-100 risk score (higher = riskier), verdict, reasons. Free, 3/day per IP.
