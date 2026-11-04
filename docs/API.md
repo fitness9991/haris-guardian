@@ -10,17 +10,48 @@ Every flag includes a plain-English `reason`. Signals, not guarantees. Not finan
 | GET | `/v1/check/{mint}` | Risk check. Free tier: 3 per UTC day per IP. Then HTTP 402 x402: **$0.01 USDC on Solana per check**. Optional `X-API-Key` (or `Authorization: Bearer`) gives 1000/day. 60 s cache. |
 | POST | `/v1/paid/check` | **Canonical x402 resource.** JSON body `{"mint": "<base58>"}`. Always paid via x402 ($0.01 USDC, Solana). Also `GET /v1/paid/check?mint=...`. |
 | GET, POST | `/v1/paid/check/{mint}` | Same, mint in the path (served, not listed in OpenAPI: discovery tools only read body/query input schemas). |
+| POST | `/v1/paid/deep-check` | **Deep check, $0.10 USDC (x402).** Body `{"mint"}`. Holder concentration (top1/top5/top10 % of supply, holder count), top wallets linked by a shared first funder (bundle/insider clusters), creator-funded and fresh top wallets, LP lock/burn status, authorities, score + reasons. 120 s cache. |
+| POST | `/v1/paid/batch-check` | **Batch check, $0.10 USDC flat per batch (x402).** Body `{"mints": [...]}` with 1-20 unique mints. Per-mint results (same shape as `/v1/check`) + summary. Charged only if at least one mint was checked. |
+| POST | `/v1/paid/diff` | **Watch/diff, $0.02 USDC (x402).** Body `{"mint", "previous"}` where `previous` is an earlier Haris result for that mint (check, deep-check, or a previous diff response). Returns `changed`, `severity`, `alerts[]` and the fresh `current` result. Stateless: nothing is stored server-side. |
 | GET | `/favicon.ico` | Logo icon. |
 | GET | `/health` | Liveness. |
 | GET | `/.well-known/agent.json` (alias `agent-card.json`) | A2A-style agent card. |
 | GET | `/openapi.json`, `/docs` | OpenAPI 3.1 spec and Swagger UI. Static copy: `docs/openapi.json`. |
-| POST | `/mcp` | MCP streamable HTTP (stateless JSON) with tool `check_solana_token(mint)`. |
+| POST | `/mcp` | MCP streamable HTTP (stateless JSON). Tools: `check_solana_token(mint)` and `diff_solana_token(mint, previous)` (free tier, then `quota_exceeded` with x402 instructions); `deep_check_solana_token(mint)`, `batch_check_solana_tokens(mints)` (paid only: return `payment_required` with the exact REST endpoint, body, price, amount, pay_to, network, facilitator). |
 
 Stdio MCP: `python -m haris_api.mcp_server` (no quota).
 
 Response fields: `mint, name, score, score_scale, level, verdict, flags[{id,weight,reason}], positives[], not_checked[],
 liquidity{usd,pools,price_usd,oldest_pool_age_hours,top_pool}, lp_locked_pct, lp_status, lp_detail, authorities{...},
 holders{...}, streamflow_locked_pct, sell_simulation{...}, partial_failures[], checked_at (UTC ISO), disclaimer`.
+
+### Paid products
+
+| Product | Endpoint | Price (USD) | Atomic USDC | Body |
+|---|---|---|---|---|
+| check | `POST /v1/paid/check` | 0.01 | `10000` | `{"mint": "<base58>"}` |
+| deep-check | `POST /v1/paid/deep-check` | 0.10 | `100000` | `{"mint": "<base58>"}` |
+| batch-check | `POST /v1/paid/batch-check` | 0.10 per batch (1-20 mints) | `100000` | `{"mints": ["<base58>", ...]}` |
+| diff | `POST /v1/paid/diff` | 0.02 | `20000` | `{"mint": "<base58>", "previous": {<earlier Haris result>}}` |
+
+The new endpoints follow the same flow as `/v1/paid/check` (below): 402 before any validation for POST/GET/HEAD, `OPTIONS` 204,
+input validated only once a payment header is present (400 `invalid_mint` / `invalid_mints` / `too_many_mints` /
+`invalid_previous` / `previous_mismatch` / `invalid_body`, 413 `payload_too_large` over 64 KB, all before verify: not charged),
+then verify -> run -> settle. Failed runs (404/502) are never settled.
+
+**deep-check** adds to the base result: `base_score`, `base_level`, `reasons[]`, `flags[]` tagged `source: base|deep`,
+`holders{top1_wallet_pct, top5_wallet_pct, top10_wallet_pct, excluded_pct, holder_count, wallets[{owner, pct, funder,
+funded_via, first_tx_at, age_days, fresh, creator_linked}]}`, `clusters[{funder, wallets, size, combined_pct,
+funder_is_top_holder, funder_is_creator, funder_busy, confidence}]`, `lp{status, locked_pct, detail, lp_mint, streamflow_*}`.
+Deep flags (added to the base score, capped at 100): `linked_holders_high` +20 (a shared-funder cluster holds >=20%),
+`linked_holders` +10 (>=5%), `creator_funded_holders` +15 (top wallets that are or were funded by an authority/dev hold >=5%),
+`fresh_top_wallets` +10 (3+ top wallets first active <3 days ago holding >=10%). Funders with 1000+ transactions (exchanges,
+bots) are marked `funder_busy` and not scored. Method: the oldest transaction of each of the top 8 wallets (public RPC).
+
+**diff** alert severities: `critical` (mint/freeze authority or permanent delegate set, LP burned -> not burned, locked LP
+share down 10+ points, liquidity down 50%+, selling now fails), `warning` (risk level up, score up 5+, new flags, liquidity
+down 20%+, top-holder % up 5+ points, round-trip loss up 10+ points), `info` (improvements). Store `current` and send it as
+`previous` next time.
 
 Errors: 400 invalid_mint / invalid_payload, 401 invalid_api_key, 402 payment required/rejected, 404 not_a_token_mint,
 429 quota_exceeded (only when x402 is off) / rate_limited (burst 20/min per IP), 502 upstream_unavailable,
@@ -56,15 +87,18 @@ Flow (both protocol versions are accepted):
 Paid calls do not use the free quota. The MCP tool, once the free tier is used, returns `quota_exceeded` with the exact REST
 paid endpoint, price, pay_to and network. Config: `HARIS_X402_ENABLED`, `HARIS_X402_PAY_TO` (required, refuses to start without a
 valid address), `HARIS_X402_PRICE_USD` (0.01), `HARIS_X402_NETWORK` (`solana`), `HARIS_X402_ASSET`, `HARIS_X402_FACILITATOR`
-(PayAI default), optional `HARIS_X402_FEE_PAYER` (else read from facilitator `/supported`, cached 10 min).
+(PayAI default), `HARIS_X402_PRICE_DEEP_USD` (0.10), `HARIS_X402_PRICE_BATCH_USD` (0.10), `HARIS_X402_PRICE_DIFF_USD` (0.02),
+optional `HARIS_X402_FEE_PAYER` (else read from facilitator `/supported`, cached 10 min).
 PayAI gives 1,000 free credits per receiving wallet (about 800 Solana settlements); after that it needs credits plus an API key.
 
 ### Discovery (x402scan / AgentCash / Bazaar)
 `/openapi.json` follows the x402scan discovery spec: `info.x-guidance`, `info.contact.email`; paid operations carry
-`x-payment-info` (`{"price":{"mode":"fixed","currency":"USD","amount":"0.01"},"protocols":[{"x402":{}}]}`), a `402` response,
+`x-payment-info` (`{"price":{"mode":"fixed","currency":"USD","amount":"0.01"},"protocols":[{"x402":{}}]}`; 0.10 for deep-check
+and batch-check, 0.02 for diff), a `402` response,
 input schema (requestBody / parameters) and a 200 output schema; free endpoints (`/health`, `/v1/check/{mint}`, `/.well-known/*`)
 have `"security": []` so scanners skip them. Register the **origin** `https://haris-api.vercel.app` at
-https://www.x402scan.com/resources/register (or just `https://haris-api.vercel.app/v1/paid/check`). Check locally with
+https://www.x402scan.com/resources/register (or the resources `https://haris-api.vercel.app/v1/paid/check`,
+`/v1/paid/deep-check`, `/v1/paid/batch-check`, `/v1/paid/diff`). Check locally with
 `npx @agentcash/discovery https://haris-api.vercel.app`.
 
 ## Run / test locally

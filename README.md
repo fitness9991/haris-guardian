@@ -14,9 +14,12 @@ Read-only scam/rug-risk checks for Solana SPL and Token-2022 tokens. Give it a m
 ## Endpoints
 | Interface | URL |
 |---|---|
-| MCP (streamable-http) | `https://haris-api.vercel.app/mcp` — tool `check_solana_token` |
+| MCP (streamable-http) | `https://haris-api.vercel.app/mcp` — tools `check_solana_token`, `diff_solana_token`, `deep_check_solana_token`, `batch_check_solana_tokens` |
 | REST (free, 3/day) | `GET https://haris-api.vercel.app/v1/check/{mint}` |
 | REST (paid, x402) | `POST https://haris-api.vercel.app/v1/paid/check` · `GET /v1/paid/check/{mint}` |
+| Deep check (x402) | `POST https://haris-api.vercel.app/v1/paid/deep-check` `{"mint"}` |
+| Batch check (x402) | `POST https://haris-api.vercel.app/v1/paid/batch-check` `{"mints": [up to 20]}` |
+| Watch/diff (x402) | `POST https://haris-api.vercel.app/v1/paid/diff` `{"mint", "previous"}` |
 | OpenAPI | https://haris-api.vercel.app/openapi.json |
 | Docs | https://haris-api.vercel.app/docs |
 | A2A agent card | https://haris-api.vercel.app/.well-known/agent.json |
@@ -24,6 +27,10 @@ Read-only scam/rug-risk checks for Solana SPL and Token-2022 tokens. Give it a m
 ## Pricing
 - 3 free checks per day per IP.
 - After that: **$0.01 USDC per check on Solana via x402** (HTTP 402 → pay → retry). Payments go to `7ZpBTGZ7mBm81esAq77FFm293zAuGM3Hi249fKPnVDfJ`.
+- **Deep check $0.10**: holder concentration (top1/top5/top10 %), top wallets linked by a shared funder (bundles/insiders), creator-funded and fresh wallets, LP lock/burn, authorities, score + reasons.
+- **Batch check $0.10 per batch** of up to 20 mints (charged only if at least one mint is checked).
+- **Watch/diff $0.02**: send a previous result, get alerts on what changed (authority re-enabled, LP unlocked, liquidity pulled, sell blocked). Stateless.
+- Failed calls are never charged. See [docs/API.md](docs/API.md).
 
 ## Quick start
 ```bash
