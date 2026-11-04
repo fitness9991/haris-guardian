@@ -26,7 +26,10 @@ Read-only scam/rug-risk checks for Solana SPL and Token-2022 tokens. Give it a m
 
 ## Pricing
 - 3 free checks per day per IP.
-- After that: **$0.01 USDC per check on Solana via x402** (HTTP 402 → pay → retry). Payments go to `7ZpBTGZ7mBm81esAq77FFm293zAuGM3Hi249fKPnVDfJ`.
+- After that: **$0.01 USDC per check via x402, on Solana or Base** (HTTP 402 → pay → retry). Every 402 lists both options; pay with whichever chain you hold USDC on:
+  - Base (`eip155:8453`, USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, exact / EIP-3009): pays `0xCf2187a039c9ac286Ee43ECc46cBc6DaEB4Fa633`
+  - Solana (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`, USDC `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`): pays `7ZpBTGZ7mBm81esAq77FFm293zAuGM3Hi249fKPnVDfJ`
+  - The facilitator pays network fees on both chains, so you need USDC only.
 - **Deep check $0.10**: holder concentration (top1/top5/top10 %), top wallets linked by a shared funder (bundles/insiders), creator-funded and fresh wallets, LP lock/burn, authorities, score + reasons.
 - **Batch check $0.10 per batch** of up to 20 mints (charged only if at least one mint is checked).
 - **Watch/diff $0.02**: send a previous result, get alerts on what changed (authority re-enabled, LP unlocked, liquidity pulled, sell blocked). Stateless.

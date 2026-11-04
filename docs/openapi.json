@@ -2,14 +2,14 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Haris Guardian API",
-    "description": "Read-only scam/rug risk checks for Solana tokens (SPL + Token-2022), by Haris Guardian.\n\n**Score: 0-100, HIGHER = RISKIER.** Levels: low (<20), medium (20-49), high (50-74), critical (75+).\nThe score is the capped sum of published flag weights; every flag comes with a plain-English reason.\n\nFree tier: 3 checks per UTC day per IP. Optional `X-API-Key` header for higher limits.\nAfter the free tier: **$0.01 USDC per check on Solana via [x402](https://x402.org)** (HTTP 402 -> retry with\n`X-PAYMENT` (v1) or `PAYMENT-SIGNATURE` (v2); the facilitator pays network fees; failed checks are not charged).\n`/v1/paid/check` (POST JSON `{\"mint\": ...}` or GET `?mint=`) and `/v1/paid/check/{mint}` always use x402.\n\nHigher-value paid endpoints (x402, POST JSON, flat price per call):\n* `/v1/paid/deep-check` `{\"mint\"}`: holder concentration, linked top wallets (shared funder), LP lock/burn, authorities.\n* `/v1/paid/batch-check` `{\"mints\": [...]}`: up to 20 mints in one call.\n* `/v1/paid/diff` `{\"mint\", \"previous\"}`: what changed since your previous snapshot (stateless watch).\n\nResults are cached for 60 s. Signals, not guarantees. Not financial advice.\nAlso available over MCP at `/mcp` (streamable HTTP): `check_solana_token`, `diff_solana_token` (free tier) and\n`deep_check_solana_token`, `batch_check_solana_tokens` (return x402 payment instructions).",
+    "description": "Read-only scam/rug risk checks for Solana tokens (SPL + Token-2022), by Haris Guardian.\n\n**Score: 0-100, HIGHER = RISKIER.** Levels: low (<20), medium (20-49), high (50-74), critical (75+).\nThe score is the capped sum of published flag weights; every flag comes with a plain-English reason.\n\nFree tier: 3 checks per UTC day per IP. Optional `X-API-Key` header for higher limits.\nAfter the free tier: **$0.01 USDC per check via [x402](https://x402.org), on Solana or Base (eip155:8453)** (HTTP 402 -> retry with\n`X-PAYMENT` (v1) or `PAYMENT-SIGNATURE` (v2); the facilitator pays network fees; failed checks are not charged).\n`/v1/paid/check` (POST JSON `{\"mint\": ...}` or GET `?mint=`) and `/v1/paid/check/{mint}` always use x402.\n\nHigher-value paid endpoints (x402, POST JSON, flat price per call):\n* `/v1/paid/deep-check` `{\"mint\"}`: holder concentration, linked top wallets (shared funder), LP lock/burn, authorities.\n* `/v1/paid/batch-check` `{\"mints\": [...]}`: up to 20 mints in one call.\n* `/v1/paid/diff` `{\"mint\", \"previous\"}`: what changed since your previous snapshot (stateless watch).\n\nResults are cached for 60 s. Signals, not guarantees. Not financial advice.\nAlso available over MCP at `/mcp` (streamable HTTP): `check_solana_token`, `diff_solana_token` (free tier) and\n`deep_check_solana_token`, `batch_check_solana_tokens` (return x402 payment instructions).",
     "contact": {
       "name": "Haris Guardian",
       "url": "https://harisguardian.netlify.app/",
       "email": "mansor791@gmail.com"
     },
     "version": "1.0.0",
-    "x-guidance": "Solana token scam/rug risk checker. Paid x402 endpoint: POST /v1/paid/check with JSON body {\"mint\": \"<base58 mint>\"} (or GET /v1/paid/check?mint=<mint>, or GET /v1/paid/check/<mint>). Costs $0.01 USDC on Solana per call via x402 (v1 X-PAYMENT or v2 PAYMENT-SIGNATURE); the facilitator pays network fees and failed checks are not charged. Response: score 0-100 (HIGHER = RISKIER), level (low/medium/high/critical), verdict and flags with plain-English reasons. Free tier: GET /v1/check/<mint>, 3 calls per UTC day per IP. Read-only; never signs or trades. Higher-value paid endpoints (POST JSON, x402): /v1/paid/deep-check {\"mint\"} ($0.10: holder concentration top1/top5/top10 %, top wallets linked by a shared funder, LP lock/burn, authorities, score + reasons); /v1/paid/batch-check {\"mints\": [up to 20]} ($0.10 per batch, charged only if at least one mint is checked); /v1/paid/diff {\"mint\", \"previous\": <earlier Haris result>} ($0.02: alerts on what changed, e.g. authority re-enabled, LP unlocked, liquidity pulled, sell blocked).",
+    "x-guidance": "Solana token scam/rug risk checker. Paid x402 endpoint: POST /v1/paid/check with JSON body {\"mint\": \"<base58 mint>\"} (or GET /v1/paid/check?mint=<mint>, or GET /v1/paid/check/<mint>). Costs $0.01 USDC on Solana or Base per call via x402 (v1 X-PAYMENT or v2 PAYMENT-SIGNATURE); the facilitator pays network fees and failed checks are not charged. Response: score 0-100 (HIGHER = RISKIER), level (low/medium/high/critical), verdict and flags with plain-English reasons. Free tier: GET /v1/check/<mint>, 3 calls per UTC day per IP. Read-only; never signs or trades. Higher-value paid endpoints (POST JSON, x402): /v1/paid/deep-check {\"mint\"} ($0.10: holder concentration top1/top5/top10 %, top wallets linked by a shared funder, LP lock/burn, authorities, score + reasons); /v1/paid/batch-check {\"mints\": [up to 20]} ($0.10 per batch, charged only if at least one mint is checked); /v1/paid/diff {\"mint\", \"previous\": <earlier Haris result>} ($0.02: alerts on what changed, e.g. authority re-enabled, LP unlocked, liquidity pulled, sell blocked).",
     "x-logo": {
       "url": "https://harisguardian.netlify.app/logo-400.png"
     }
@@ -78,7 +78,7 @@
             "description": "Invalid API key"
           },
           "402": {
-            "description": "Free tier used: pay $0.01 USDC on Solana via x402 (X-PAYMENT or PAYMENT-SIGNATURE)"
+            "description": "Free tier used: pay $0.01 USDC on Solana or Base via x402 (X-PAYMENT or PAYMENT-SIGNATURE)"
           },
           "429": {
             "description": "Free quota (when x402 disabled) or burst limit exceeded"
@@ -171,7 +171,7 @@
             }
           },
           "402": {
-            "description": "x402 payment required: $0.01 USDC on Solana (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
+            "description": "x402 payment required: $0.01 USDC on Solana or Base (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
           },
           "400": {
             "description": "Invalid mint address or malformed payment header"
@@ -284,7 +284,7 @@
             }
           },
           "402": {
-            "description": "x402 payment required: $0.01 USDC on Solana (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
+            "description": "x402 payment required: $0.01 USDC on Solana or Base (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
           },
           "400": {
             "description": "Invalid mint address or malformed payment header"
@@ -458,7 +458,7 @@
             }
           },
           "402": {
-            "description": "x402 payment required: $0.10 USDC on Solana (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
+            "description": "x402 payment required: $0.10 USDC on Solana or Base (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
           },
           "400": {
             "description": "Invalid input or malformed payment header (payment not processed)"
@@ -586,7 +586,7 @@
             }
           },
           "402": {
-            "description": "x402 payment required: $0.10 USDC on Solana (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
+            "description": "x402 payment required: $0.10 USDC on Solana or Base (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
           },
           "400": {
             "description": "Invalid input or malformed payment header (payment not processed)"
@@ -757,7 +757,7 @@
             }
           },
           "402": {
-            "description": "x402 payment required: $0.02 USDC on Solana (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
+            "description": "x402 payment required: $0.02 USDC on Solana or Base (v2 challenge in the PAYMENT-REQUIRED header, v1 challenge in the JSON body)"
           },
           "400": {
             "description": "Invalid input or malformed payment header (payment not processed)"
@@ -813,6 +813,27 @@
         ],
         "summary": "A2A agent card (alias)",
         "operationId": "agent_card__well_known_agent_card_json_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/.well-known/x402": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "x402 discovery document",
+        "description": "x402scan-style discovery fan-out: absolute URLs of every route that answers a live 402.",
+        "operationId": "well_known_x402__well_known_x402_get",
         "responses": {
           "200": {
             "description": "Successful Response",

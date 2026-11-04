@@ -7,8 +7,8 @@ Every flag includes a plain-English `reason`. Signals, not guarantees. Not finan
 ## Endpoints
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/v1/check/{mint}` | Risk check. Free tier: 3 per UTC day per IP. Then HTTP 402 x402: **$0.01 USDC on Solana per check**. Optional `X-API-Key` (or `Authorization: Bearer`) gives 1000/day. 60 s cache. |
-| POST | `/v1/paid/check` | **Canonical x402 resource.** JSON body `{"mint": "<base58>"}`. Always paid via x402 ($0.01 USDC, Solana). Also `GET /v1/paid/check?mint=...`. |
+| GET | `/v1/check/{mint}` | Risk check. Free tier: 3 per UTC day per IP. Then HTTP 402 x402: **$0.01 USDC per check, on Solana or Base**. Optional `X-API-Key` (or `Authorization: Bearer`) gives 1000/day. 60 s cache. |
+| POST | `/v1/paid/check` | **Canonical x402 resource.** JSON body `{"mint": "<base58>"}`. Always paid via x402 ($0.01 USDC, Solana or Base). Also `GET /v1/paid/check?mint=...`. |
 | GET, POST | `/v1/paid/check/{mint}` | Same, mint in the path (served, not listed in OpenAPI: discovery tools only read body/query input schemas). |
 | POST | `/v1/paid/deep-check` | **Deep check, $0.10 USDC (x402).** Body `{"mint"}`. Holder concentration (top1/top5/top10 % of supply, holder count), top wallets linked by a shared first funder (bundle/insider clusters), creator-funded and fresh top wallets, LP lock/burn status, authorities, score + reasons. 120 s cache. |
 | POST | `/v1/paid/batch-check` | **Batch check, $0.10 USDC flat per batch (x402).** Body `{"mints": [...]}` with 1-20 unique mints. Per-mint results (same shape as `/v1/check`) + summary. Charged only if at least one mint was checked. |
@@ -70,7 +70,26 @@ Durable free-tier counter (shared by all serverless instances): set `KV_REST_API
 Upstash Redis REST; `UPSTASH_REDIS_REST_URL`/`_TOKEN` also accepted). Identities are stored hashed, keys expire after 2 days;
 if the store is unreachable the counter falls back to per-instance memory.
 
-## x402 pay-per-call (LIVE on Solana mainnet)
+## x402 pay-per-call (LIVE on Solana mainnet and Base mainnet)
+Every 402 lists **two** `accepts[]` entries with the same price; pay on whichever chain you hold USDC on. Base is listed
+first (some marketplaces require it); x402 clients pick the entry matching the network they support, not the index
+(`HARIS_X402_BASE_FIRST=0` flips the order).
+
+| | Base | Solana |
+|---|---|---|
+| network (v1 / v2) | `base` / `eip155:8453` | `solana` / `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` |
+| asset (USDC) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
+| payTo | `0xCf2187a039c9ac286Ee43ECc46cBc6DaEB4Fa633` | `7ZpBTGZ7mBm81esAq77FFm293zAuGM3Hi249fKPnVDfJ` |
+| extra | `{"name":"USD Coin","version":"2"}` (EIP-712 domain) | `{"feePayer":"<facilitator fee payer>"}` |
+| payload | EIP-3009 `transferWithAuthorization`: `{signature, authorization{from,to,value,validAfter,validBefore,nonce}}` | partially signed `TransferChecked` tx |
+| facilitators | PayAI, then Base-capable fallbacks only (Ultravioletadao; Dexter for v1 only, its v2 Base path is permit2) | PayAI, Dexter, Ultravioletadao |
+
+The server checks that a Base payment's network, asset, payTo, amount and `authorization.to`/`value` match the challenge before
+calling `/verify`, and routes verify/settle to a facilitator that supports exact/EIP-3009 on Base for that x402 version
+(503 `facilitator_unavailable` if none is up). Config: `HARIS_X402_PAY_TO_BASE` (empty = Base rail off; must be an EIP-55
+checksummed address or the server refuses to start), `HARIS_X402_ASSET_BASE` (USDC on Base by default).
+
+### Solana details
 Price **$0.01 per check = `10000` USDC atomic units** (6 decimals), asset USDC mint
 `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`, scheme `exact`, paid to the owner-approved receive-only wallet
 `7ZpBTGZ7mBm81esAq77FFm293zAuGM3Hi249fKPnVDfJ`. Facilitator: PayAI (`https://facilitator.payai.network`), with keyless fallbacks
