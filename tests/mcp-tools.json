@@ -1,0 +1,34 @@
+{
+  "endpoint": "https://haris-api.vercel.app/mcp",
+  "tools": [
+    {
+      "name": "check_solana_token",
+      "required": ["mint"],
+      "properties": {
+        "mint": { "type": "string" }
+      }
+    },
+    {
+      "name": "diff_solana_token",
+      "required": ["mint", "previous"],
+      "properties": {
+        "mint": { "type": "string" },
+        "previous": { "type": "object" }
+      }
+    },
+    {
+      "name": "deep_check_solana_token",
+      "required": ["mint"],
+      "properties": {
+        "mint": { "type": "string" }
+      }
+    },
+    {
+      "name": "batch_check_solana_tokens",
+      "required": ["mints"],
+      "properties": {
+        "mints": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  ]
+}
