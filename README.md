@@ -2,6 +2,8 @@
 
 # Haris Guardian — Solana token risk check (MCP + REST + x402)
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/fitness9991/haris-guardian)](https://m8ven.ai/mcp/fitness9991/haris-guardian?s=readme)
+
 Read-only scam/rug-risk checks for Solana SPL and Token-2022 tokens. Give it a mint address; get a **0–100 risk score (higher = riskier)**, a verdict, and plain-English reasons. It never signs, trades, or holds keys.
 
 ## What it checks
@@ -122,6 +124,22 @@ MCP client config:
 Cline: use `"type": "streamableHttp"` (see [llms-install.md](llms-install.md)).
 
 LLM-friendly summary: https://haris-api.vercel.app/llms.txt
+
+## Tests
+
+Offline checks (no network, no extra packages) confirm the four MCP tools and their input schemas:
+
+```bash
+python3 -m unittest tests/test_mcp_tools.py
+node --test tests/mcp_tools.test.mjs
+```
+
+Optional live smoke test against the hosted MCP (`https://haris-api.vercel.app/mcp`). Skips if the network is unreachable:
+
+```bash
+HARIS_LIVE=1 python3 -m unittest tests/test_mcp_tools.py
+HARIS_LIVE=1 node --test tests/mcp_tools.test.mjs
+```
 
 ## Limits / honesty
 A score is a heuristic signal, not financial advice or a guarantee. A low score does not mean a token is safe or will go up.
