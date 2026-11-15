@@ -2,7 +2,7 @@
 
 # Haris Guardian — Solana token risk check (MCP + REST + x402)
 
-[![M8ven Score](https://m8ven.ai/badge/mcp/fitness9991/haris-guardian)](https://m8ven.ai/mcp/fitness9991/haris-guardian?s=readme)
+[![M8ven Score](https://m8ven.ai/badge/mcp/fitness9991-haris-guardian-1ss6lx?v=24ddd8b4c014a8eff53f8ad581b4739d)](https://m8ven.ai/mcp/fitness9991-haris-guardian-1ss6lx?s=readme)
 
 Read-only scam/rug-risk checks for Solana SPL and Token-2022 tokens. Give it a mint address; get a **0–100 risk score (higher = riskier)**, a verdict, and plain-English reasons. It never signs, trades, or holds keys.
 
